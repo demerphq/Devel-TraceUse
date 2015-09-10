@@ -44,8 +44,7 @@ sub import {
     }
 }
 
-my @caller_info = qw( package filepath line subroutine hasargs
-    wantarray evaltext is_require hints bitmask hinthash );
+my @caller_info = qw( package filepath line );
 
 # Keys used in the data structure:
 # - filename: parameter given to use/require
@@ -80,7 +79,7 @@ sub trace_use
 
     # info about the loading module
     my $caller = $info->{caller} = {};
-    @{$caller}{@caller_info} = caller(0);
+    @{$caller}{@caller_info} = caller;
 
     # try to compute a "filename" (as received by require)
     $caller->{filestring} = $caller->{filename} = $caller->{filepath};
