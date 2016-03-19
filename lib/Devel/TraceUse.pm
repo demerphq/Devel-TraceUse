@@ -480,6 +480,8 @@ C<perl -c> support contributed by Olivier Mengué (C<< <dolmen@cpan.org> >>).
 Proxy detection owes a lot to Olivier Mengué (C<< <dolmen@cpan.org> >>),
 who submitted several patches and discussed the topic with me on IRC.
 
+The thorough L</SEE ALSO> section was written by Neil Bowers (C<< <neilb@cpan.org> >>).
+
 =head1 BUGS
 
 Please report any bugs or feature requests to
