@@ -1,10 +1,15 @@
 Revision history for Devel-TraceUse
 
 {{$NEXT}}
+
+2.094 2016-03-20 BOOK
+    - Disabled extra debugger features (HAARG)
     - Added SEE ALSO section with a discussion of the main modules
-      on CPAN for determining dependencies.
-    - Tweaked formatting of this file as per CPAN::Changes::Spec,
-      in the process ensuring all dates are UTC (like CPAN & PAUSE).
+      on CPAN for determining dependencies. (NEILB)
+    - Tweaked formatting of this file as per CPAN::Changes::Spec, in the
+      process ensuring all dates are UTC (like CPAN & PAUSE). (NEILB)
+    - Simplified the data structure and the caller() call
+    - Switched to Dist::Zilla for packaging
 
 2.093 2014-06-26 BOOK
     - fixed the test script to properly deal with sitecustomize and proxies
