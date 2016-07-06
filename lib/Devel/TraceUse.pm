@@ -383,7 +383,7 @@ dependencies. They fall into three general classes:
 run-time, like C<Devel-TraceUse>, through introspection.
 This is often done by looking at C<%INC>, but other approaches
 include over-riding the C<require> built-in, or adding a coderef
-to the head of C<@INC> (see <perldoc require|http://perldoc.perl.org/functions/require.html>
+to the head of C<@INC> (see L<perldoc require|http://perldoc.perl.org/functions/require.html>
 for more details of that approach).
 This may not give you the full list of dependencies,
 because different modules may be loaded depended on
