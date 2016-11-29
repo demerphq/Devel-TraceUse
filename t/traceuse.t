@@ -363,7 +363,7 @@ sub add_sitecustomize {
     my ( $nums, $errput, @cmd ) = @_;
     my $sitecustomize_path
         = File::Spec->catfile( $Config{sitelib}, 'sitecustomize.pl' );
-    my ($sitecustomize) = grep { /sitecustomize\.pl$/ } keys %INC;
+    my ($sitecustomize) = grep { /\bsitecustomize\.pl$/ } keys %INC;
 
     # provide some info to the tester
     if ( !$diag++ ) {
@@ -371,9 +371,10 @@ sub add_sitecustomize {
             -e $sitecustomize_path
             ? "and the file $sitecustomize_path exists"
             : "but the file $sitecustomize_path does not exist";
-        diag "$sitecustomize was loaded successfully"
+        diag "sitecustomize.pl was loaded successfully via $INC{$sitecustomize}"
             if $sitecustomize;
     }
+    $sitecustomize_path = $INC{$sitecustomize} if !-e $sitecustomize_path;
 
     # the output depends on the existence of sitecustomize.pl
     if ( -e $sitecustomize_path ) {
