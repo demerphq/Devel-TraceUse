@@ -2,6 +2,10 @@ Revision history for Devel-TraceUse
 
 {{$NEXT}}
 
+2.095 2016-12-04 BOOK
+    - Improve detection of sitecustomize.pl (Debian patch)
+    - Minor documentation fixes
+
 2.094 2016-03-20 BOOK
     - Disabled extra debugger features rather than working around them
       (fix RT #89600, contributed by Graham Knop (HAARG))
