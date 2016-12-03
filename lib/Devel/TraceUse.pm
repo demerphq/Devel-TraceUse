@@ -82,7 +82,7 @@ sub trace_use
     @{$caller}{@caller_info} = caller;
 
     # try to compute a "filename" (as received by require)
-    $caller->{filestring} = $caller->{filename} = $caller->{filepath};
+    $caller->{filename} = $caller->{filepath};
 
     # some values seen in the wild:
     # - "(eval $num)[$path:$line]" (debugger)
