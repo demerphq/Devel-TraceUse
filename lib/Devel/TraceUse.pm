@@ -15,10 +15,14 @@ BEGIN
 
 # initialize the tree of require calls
 my $root = (caller)[1];
-my %used;        # track loaded modules by "filename" (parameter to require)
-my %loaded;      # track "filename"s loaded  by "filepath" (value from %INC)
+
+# keys in %TRACE:
+# - used:     track loaded modules by "filename" (parameter to require)
+# - loaded:   track "filename"s loaded  by "filepath" (value from %INC)
+# - loader:   track potential proxy modules
+my %TRACE;
+
 my %reported;    # track reported "filename"
-my %loader;      # track potential proxy modules
 my $rank  = 0;   # record the loading order of modules
 my $quiet = 1;   # no output until decided otherwise
 my $output_fh;   # optional write filehandle where results will be output
@@ -70,7 +74,7 @@ sub trace_use
         if $module =~ s/\.pm$//;
 
     # info about the module being loaded
-    push @{ $used{$filename} }, my $info = {
+    push @{ $TRACE{used}{$filename} }, my $info = {
         filename => $filename,
         module   => $module,
         rank     => ++$rank,
@@ -104,7 +108,7 @@ sub trace_use
         if $caller->{filepackage} =~ s/\.pm$//;
 
     # record who tried to load us
-    push @{ $loaded{ $caller->{filepath} } }, $info->{filename};
+    push @{ $TRACE{loaded}{ $caller->{filepath} } }, $info->{filename};
 
     # record potential proxies
     if ( $caller->{filename} ) {
@@ -112,7 +116,7 @@ sub trace_use
         while ( $subroutine = ( caller ++$level )[3] || '' ) {
             last if $subroutine =~ /::/;
         }
-        $loader{ join "\0", @{$caller}{qw( filename line )}, $subroutine }++;
+        $TRACE{loader}{ join "\0", @{$caller}{qw( filename line )}, $subroutine }++;
     }
 
     # let Perl ultimately find the required file
@@ -160,10 +164,10 @@ sub visit_trace
         $reported{$mod->{filename}}++;
     }
     else {
-        $mod = { loaded => delete $loaded{$mod} };
+        $mod = { loaded => delete $TRACE{loaded}{$mod} };
     }
 
-    visit_trace( $visitor, $used{$_}, $hide ? $pos : $pos + 1, @args )
+    visit_trace( $visitor, $TRACE{used}{$_}, $hide ? $pos : $pos + 1, @args )
         for map { $INC{$_} || $_ } @{ $mod->{loaded} };
 }
 
@@ -182,9 +186,9 @@ sub dump_proxies
     my $output = shift;
 
     my @hot_loaders =
-        sort { $loader{$b} <=> $loader{$a} }
-        grep { $loader{$_} > 1 }
-        keys %loader;
+      sort { $TRACE{loader}{$b} <=> $TRACE{loader}{$a} }
+      grep { $TRACE{loader}{$_} > 1 }
+      keys %{ $TRACE{loader} };
 
     return unless @hot_loaders;
 
@@ -193,7 +197,7 @@ sub dump_proxies
     for my $loader (@hot_loaders) {
         my ( $filename, $line, $subroutine ) = split /\0/, $loader;
         $output->(sprintf("%4d %s line %d%s",
-                $loader{$loader},
+                $TRACE{loader}{$loader},
                 $filename, $line,
                     (defined($subroutine) ? ", sub $subroutine" : '')));
     }
@@ -205,9 +209,9 @@ sub dump_result
 
     # map "filename" to "filepath" for everything that was loaded
     while ( my ( $filename, $filepath ) = each %INC ) {
-        if ( exists $used{$filename} ) {
-            $used{$filename}[0]{loaded} = delete $loaded{$filepath} || [];
-            $used{$filepath} = delete $used{$filename};
+        if ( exists $TRACE{used}{$filename} ) {
+            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded}{$filepath} || [];
+            $TRACE{used}{$filepath} = delete $TRACE{used}{$filename};
         }
     }
 
@@ -233,8 +237,9 @@ sub dump_result
     visit_trace( \&show_trace_visitor, $root, 0, $output );
 
     # anything left?
-    if (%loaded) {
-        visit_trace( \&show_trace_visitor, $_, 0, $output ) for sort keys %loaded;
+    if ( %{ $TRACE{loaded} } ) {
+        visit_trace( \&show_trace_visitor, $_, 0, $output )
+          for sort keys %{ $TRACE{loaded} };
     }
 
     # did we miss some modules?
