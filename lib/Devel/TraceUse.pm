@@ -226,7 +226,7 @@ sub dump_proxies
         $output->(sprintf("%4d %s line %d%s",
                 $TRACE{loader}{$loader},
                 $filename, $line,
-                    (defined($subroutine) ? ", sub $subroutine" : '')));
+                    (length($subroutine) ? ", sub $subroutine" : '')));
     }
 }
 
