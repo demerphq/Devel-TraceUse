@@ -51,8 +51,10 @@ sub import {
 
 my @caller_info = qw( package filepath line );
 
+### %TRACE CONSTRUCTION
+
 # Keys used in the data structure:
-# - filename: parameter given to use/require
+# - filename: parameter passed to use/require
 # - module:   module, computed from filename
 # - rank:     rank of loading
 # - eval:     was this use/require done in an eval?
@@ -127,8 +129,21 @@ sub trace_use
     return;
 }
 
-sub show_trace_visitor
-{
+### UTILITY FUNCTIONS
+
+# we don't want to use version.pm on old Perls
+sub numify {
+    my ($version) = @_;
+    $version =~ y/_//d;
+    my @parts = split /\./, $version;
+
+    # %Module::CoreList::version's keys are x.yyyzzz *numbers*
+    return 0+ join '', shift @parts, '.', map sprintf( '%03s', $_ ), @parts;
+}
+
+### OUTPUT FORMATTERS
+
+sub show_trace_visitor {
     my ( $mod, $pos, $output_cb, @args ) = @_;
 
     my $caller = $mod->{caller};
@@ -173,16 +188,6 @@ sub visit_trace
 
     visit_trace( $visitor, $TRACE{used}{$_}, $hide ? $pos : $pos + 1, @args )
         for map { $INC{$_} || $_ } @{ $mod->{loaded} };
-}
-
-# we don't want to use version.pm on old Perls
-sub numify {
-    my ($version) = @_;
-    $version =~ y/_//d;
-    my @parts = split /\./, $version;
-
-    # %Module::CoreList::version's keys are x.yyyzzz *numbers*
-    return 0+ join '', shift @parts, '.', map sprintf( '%03s', $_ ), @parts;
 }
 
 sub dump_proxies
@@ -261,7 +266,8 @@ sub dump_result
     close $output_fh if defined $output_fh;
 }
 
-# Install the final hook
+### HOOK INSTALLATION
+
 # If perl runs with -c we want to dump
 CHECK {
     # "perl -c" ?
@@ -271,6 +277,7 @@ CHECK {
 END { dump_result() }
 
 1;
+
 __END__
 
 =encoding iso-8859-1
