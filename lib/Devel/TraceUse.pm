@@ -8,9 +8,18 @@ BEGIN {
     }
 }
 
-BEGIN
-{
-    unshift @INC, \&trace_use unless grep { "$_" eq \&trace_use . '' } @INC;
+BEGIN {
+    unshift @INC, \&trace_use;
+    *CORE::GLOBAL::require = sub {
+        my ($arg) = @_;
+
+        # ensure our hook remains first in @INC
+        @INC = ( \&trace_use, grep "$_" ne \&trace_use . '', @INC )
+          if $INC[0] ne \&trace_use;
+
+        # let require do the heavy lifting
+        eval "CORE::require(\$arg);";
+    };
 }
 
 # initialize the tree of require calls
@@ -68,10 +77,6 @@ sub trace_use
 {
     my ( $code, $filename ) = @_;
 
-    # ensure our hook remains first in @INC
-    @INC = ( $code, grep { $_ ne $code } @INC )
-        if $INC[0] ne $code;
-
     # $filename may be an actual filename, e.g. with do()
     # try to compute a module name from it
     my $module = $filename;
@@ -87,8 +92,9 @@ sub trace_use
     };
 
     # info about the loading module
+    # (our require override adds two frames)
     my $caller = $info->{caller} = {};
-    @{$caller}{@caller_info} = caller;
+    @{$caller}{@caller_info} = caller(2);
 
     # try to compute a "filename" (as received by require)
     $caller->{filename} = $caller->{filepath};
@@ -117,7 +123,8 @@ sub trace_use
 
     # record potential proxies
     if ( $caller->{filename} ) {
-        my($subroutine, $level);
+        my $level = 2;    # our require override adds two frames
+        my $subroutine;
         while ( $subroutine = ( caller ++$level )[3] || '' ) {
             last if $subroutine =~ /::/;
         }
@@ -248,6 +255,7 @@ sub dump_result
     if ($hide_core) {
         local @INC = grep { $_ ne \&trace_use } @INC;
         local %INC = %INC;    # don't report it loaded
+        local *trace_use = sub {};
         require Module::CoreList;
         warn sprintf "Module::CoreList %s doesn't know about Perl %s\n",
             $Module::CoreList::VERSION, $hide_core
