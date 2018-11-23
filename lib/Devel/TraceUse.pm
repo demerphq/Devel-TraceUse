@@ -17,6 +17,7 @@ BEGIN
 my $root = (caller)[1];
 
 # keys in %TRACE:
+# - ranked:    modules load attemps in chronological order
 # - loaded_by: track "filename"s loaded by "filepath" (value from %INC)
 # - used:      track loaded modules by "filename" (parameter to require)
 # - loader:    track potential proxy modules
@@ -80,6 +81,9 @@ sub trace_use
         rank     => ++$rank,
         eval     => '',
     };
+
+    # chronological list of modules we tried to load
+    push @{ $TRACE{ranked} }, $info;
 
     # info about the loading module
     my $caller = $info->{caller} = {};
