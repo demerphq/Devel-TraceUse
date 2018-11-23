@@ -510,6 +510,8 @@ You can also look for information at:
 
 O'Reilly Media, 2006.
 
+L<http://shop.oreilly.com/product/9780596526740.do>
+
 =item * RT: CPAN's request tracker
 
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-TraceUse>
