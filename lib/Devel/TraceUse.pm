@@ -21,6 +21,8 @@ my $root = (caller)[1];
 # - loaded_by: track "filename"s loaded by "filepath" (value from %INC)
 # - used:      track loaded modules by "filename" (parameter to require)
 # - loader:    track potential proxy modules
+#
+# %TRACE is built incrementally by trace_use, and augmented by post_process
 my %TRACE;
 
 my %reported;    # track reported "filename"
@@ -129,6 +131,23 @@ sub trace_use
     return;
 }
 
+# some post-processing that requires the modules to have been actually loaded
+sub post_process {
+
+    # map "filename" to "filepath" for everything that was loaded
+    while ( my ( $filename, $filepath ) = each %INC ) {
+        if ( exists $TRACE{used}{$filename} ) {
+            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded_by}{$filepath} || [];
+            $TRACE{used}{$filepath} = delete $TRACE{used}{$filename};
+        }
+    }
+
+    # extract version
+    for my $mod ( @{ $TRACE{ranked} } ) {
+        $mod->{version} = ${"$mod->{module}\::VERSION"};
+    }
+}
+
 ### UTILITY FUNCTIONS
 
 # we don't want to use version.pm on old Perls
@@ -149,8 +168,7 @@ sub show_trace_visitor {
     my $caller = $mod->{caller};
     my $message = sprintf( '%4s.', $mod->{rank} ) . '  ' x $pos;
     $message .= "$mod->{module}";
-    my $version = ${"$mod->{module}\::VERSION"};
-    $message .= defined $version ? " $version," : ',';
+    $message .= defined $mod->{version} ? " $mod->{version}," : ',';
     $message .= " $caller->{filename}"
         if defined $caller->{filename};
     $message .= " line $caller->{line}"
@@ -216,13 +234,7 @@ sub dump_result
 {
     return if $quiet;
 
-    # map "filename" to "filepath" for everything that was loaded
-    while ( my ( $filename, $filepath ) = each %INC ) {
-        if ( exists $TRACE{used}{$filename} ) {
-            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded_by}{$filepath} || [];
-            $TRACE{used}{$filepath} = delete $TRACE{used}{$filename};
-        }
-    }
+    post_process();
 
     # let people know more accurate information is available
     warn "Use -d:TraceUse for more accurate information.\n" if !$^P;
