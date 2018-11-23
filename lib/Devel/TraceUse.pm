@@ -17,9 +17,9 @@ BEGIN
 my $root = (caller)[1];
 
 # keys in %TRACE:
-# - used:     track loaded modules by "filename" (parameter to require)
-# - loaded:   track "filename"s loaded  by "filepath" (value from %INC)
-# - loader:   track potential proxy modules
+# - loaded_by: track "filename"s loaded by "filepath" (value from %INC)
+# - used:      track loaded modules by "filename" (parameter to require)
+# - loader:    track potential proxy modules
 my %TRACE;
 
 my %reported;    # track reported "filename"
@@ -108,7 +108,7 @@ sub trace_use
         if $caller->{filepackage} =~ s/\.pm$//;
 
     # record who tried to load us
-    push @{ $TRACE{loaded}{ $caller->{filepath} } }, $info->{filename};
+    push @{ $TRACE{loaded_by}{ $caller->{filepath} } }, $info->{filename};
 
     # record potential proxies
     if ( $caller->{filename} ) {
@@ -164,7 +164,7 @@ sub visit_trace
         $reported{$mod->{filename}}++;
     }
     else {
-        $mod = { loaded => delete $TRACE{loaded}{$mod} };
+        $mod = { loaded => delete $TRACE{loaded_by}{$mod} };
     }
 
     visit_trace( $visitor, $TRACE{used}{$_}, $hide ? $pos : $pos + 1, @args )
@@ -210,7 +210,7 @@ sub dump_result
     # map "filename" to "filepath" for everything that was loaded
     while ( my ( $filename, $filepath ) = each %INC ) {
         if ( exists $TRACE{used}{$filename} ) {
-            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded}{$filepath} || [];
+            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded_by}{$filepath} || [];
             $TRACE{used}{$filepath} = delete $TRACE{used}{$filename};
         }
     }
@@ -237,9 +237,9 @@ sub dump_result
     visit_trace( \&show_trace_visitor, $root, 0, $output );
 
     # anything left?
-    if ( %{ $TRACE{loaded} } ) {
+    if ( %{ $TRACE{loaded_by} } ) {
         visit_trace( \&show_trace_visitor, $_, 0, $output )
-          for sort keys %{ $TRACE{loaded} };
+          for sort keys %{ $TRACE{loaded_by} };
     }
 
     # did we miss some modules?
