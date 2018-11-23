@@ -78,16 +78,13 @@ sub trace_use
     $module =~ s{/}{::}g
         if $module =~ s/\.pm$//;
 
-    # info about the module being loaded
-    push @{ $TRACE{used}{$filename} }, my $info = {
+    # chronological list of modules we tried to load
+    push @{ $TRACE{ranked} }, my $info = {
         filename => $filename,
         module   => $module,
         rank     => ++$rank,
         eval     => '',
     };
-
-    # chronological list of modules we tried to load
-    push @{ $TRACE{ranked} }, $info;
 
     # info about the loading module
     my $caller = $info->{caller} = {};
@@ -115,8 +112,8 @@ sub trace_use
     $caller->{filepackage} =~ s{/}{::}g
         if $caller->{filepackage} =~ s/\.pm$//;
 
-    # record who tried to load us
-    push @{ $TRACE{loaded_by}{ $caller->{filepath} } }, $info->{filename};
+    # record who tried to load us (and store our index)
+    push @{ $TRACE{loaded_by}{ $caller->{filepath} } }, $info->{rank} - 1;
 
     # record potential proxies
     if ( $caller->{filename} ) {
@@ -134,11 +131,23 @@ sub trace_use
 # some post-processing that requires the modules to have been actually loaded
 sub post_process {
 
+    # process the list of loading attempts in reverse order:
+    # if a module shows up more than once, then all occurences
+    # are failures to load, except maybe the last one
+    for my $module ( reverse @{ $TRACE{ranked} || [] } ) {
+        my $filename = $module->{filename};
+
+        # module was successfully loaded
+        if ( exists $INC{$filename} ) {
+            $TRACE{used}{$filename} ||= $module;
+        }
+    }
+
     # map "filename" to "filepath" for everything that was loaded
     while ( my ( $filename, $filepath ) = each %INC ) {
         if ( exists $TRACE{used}{$filename} ) {
-            $TRACE{used}{$filename}[0]{loaded} = delete $TRACE{loaded_by}{$filepath} || [];
-            $TRACE{used}{$filepath} = delete $TRACE{used}{$filename};
+            $TRACE{used}{$filename}{loaded} = delete $TRACE{loaded_by}{$filepath} || [];
+            $TRACE{used}{$filename}{filepath} = $filepath;
         }
     }
 
@@ -178,7 +187,7 @@ sub show_trace_visitor {
     $message .= " [$caller->{package}]"
         if $caller->{package} ne $caller->{filepackage};
     $message .= " (FAILED)"
-        if !exists $INC{$mod->{filename}};
+        if !exists $mod->{filepath};
 
     $output_cb->($message, @args);
 }
@@ -190,22 +199,18 @@ sub visit_trace
     my $hide = 0;
 
     if ( ref $mod ) {
-        $mod = shift @$mod;
-
         if($hide_core) {
             $hide = exists $Module::CoreList::version{$hide_core}{$mod->{module}};
         }
-
         $visitor->( $mod, $pos, @args ) unless $hide;
-
         $reported{$mod->{filename}}++;
     }
     else {
         $mod = { loaded => delete $TRACE{loaded_by}{$mod} };
     }
 
-    visit_trace( $visitor, $TRACE{used}{$_}, $hide ? $pos : $pos + 1, @args )
-        for map { $INC{$_} || $_ } @{ $mod->{loaded} };
+    visit_trace( $visitor, $_, $hide ? $pos : $pos + 1, @args )
+        for map $TRACE{ranked}[$_], @{ $mod->{loaded} };
 }
 
 sub dump_proxies
