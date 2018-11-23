@@ -510,21 +510,13 @@ You can also look for information at:
 
 O'Reilly Media, 2006.
 
-=item * AnnoCPAN: Annotated CPAN documentation
-
-L<http://annocpan.org/dist/Devel-TraceUse>
-
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Devel-TraceUse>
-
 =item * RT: CPAN's request tracker
 
 L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Devel-TraceUse>
 
-=item * Search CPAN
+=item * MetaCPAN
 
-L<http://search.cpan.org/dist/Devel-TraceUse>
+L<https://metacpan.org/release/Devel-TraceUse>
 
 =back
 
