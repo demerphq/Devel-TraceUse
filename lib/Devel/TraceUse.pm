@@ -567,7 +567,7 @@ L<https://metacpan.org/release/Devel-TraceUse>
 
 Copyright 2006 chromatic, most rights reserved.
 
-Copyright 2010-2016 Philippe Bruhat (BooK), for the rewrite.
+Copyright 2010-2018 Philippe Bruhat (BooK), for the rewrite.
 
 =head1 LICENSE
 
