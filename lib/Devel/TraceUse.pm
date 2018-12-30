@@ -18,7 +18,7 @@ BEGIN {
           if $INC[0] ne \&trace_use;
 
         # let require do the heavy lifting
-        eval "CORE::require(\$arg);";
+        CORE::require($arg);
     };
 }
 
@@ -92,9 +92,9 @@ sub trace_use
     };
 
     # info about the loading module
-    # (our require override adds two frames)
+    # (our require override adds one frame)
     my $caller = $info->{caller} = {};
-    @{$caller}{@caller_info} = caller(2);
+    @{$caller}{@caller_info} = caller(1);
 
     # try to compute a "filename" (as received by require)
     $caller->{filename} = $caller->{filepath};
@@ -123,7 +123,7 @@ sub trace_use
 
     # record potential proxies
     if ( $caller->{filename} ) {
-        my $level = 2;    # our require override adds two frames
+        my $level = 1;    # our require override adds one frame
         my $subroutine;
         while ( $subroutine = ( caller ++$level )[3] || '' ) {
             last if $subroutine =~ /::/;
