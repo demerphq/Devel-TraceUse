@@ -92,9 +92,11 @@ sub trace_use
     };
 
     # info about the loading module
-    # (our require override adds one frame)
     my $caller = $info->{caller} = {};
-    @{$caller}{@caller_info} = caller(1);
+    my $caller_initial_level = 1;  # one for the require() wrapper
+    $caller_initial_level++ if $] >= 5.037007; # and another for modern perls
+                                               # which eval the INC hook.
+    @{$caller}{@caller_info} = caller($caller_initial_level);
 
     # try to compute a "filename" (as received by require)
     $caller->{filename} = $caller->{filepath};
@@ -123,7 +125,7 @@ sub trace_use
 
     # record potential proxies
     if ( $caller->{filename} ) {
-        my $level = 1;    # our require override adds one frame
+        my $level = $caller_initial_level;  # set up above
         my $subroutine;
         while ( $subroutine = ( caller ++$level )[3] || '' ) {
             last if $subroutine =~ /::/;
